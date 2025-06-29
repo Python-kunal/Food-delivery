@@ -1,0 +1,26 @@
+body {
+    background-color: #99058d;
+    font-family: Arial, sans-serif;
+}
+h1 {
+    color: #007bff;
+}
+footer {
+    background-color: #067bf0;
+    color: rgba(175, 18, 236, 0.753);
+}
+.hero {
+    position: relative;
+    color: rgb(10, 92, 243);
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.hero h1 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.hero p {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
