@@ -17,11 +17,20 @@ document.getElementById('total-price').textContent = total;
 
 // Confirm Order
 document.getElementById('confirm-order').addEventListener('click', async () => {
+    const name = document.getElementById('name').value;
+    const address = document.getElementById('address').value;
+    const phone = document.getElementById('phone').value;
+
+    if (!name || !address || !phone) {
+        alert("Please fill in all customer details.");
+        return;
+    }
+
     try {
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: cart, total }),
+            body: JSON.stringify({ items: cart, total, name, address, phone }),
         });
 
         if (response.ok) {
