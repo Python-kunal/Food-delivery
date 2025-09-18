@@ -3,29 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food Delivery</title>
-    <!-- Bootstrap CSS -->
+    <title>Hunger</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="#">FoodDelivery</a>
+            <a class="navbar-brand" href="#">Hunger</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Menu</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="modal" data-bs-target="#cartModal">Cart</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#menu">Menu</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="modal" data-bs-target="#cartModal">
+                            Cart <span class="badge bg-primary rounded-pill" id="cart-item-count">0</span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <!-- Cart Modal -->
     <div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -35,83 +38,67 @@
                 </div>
                 <div class="modal-body">
                     <ul id="cart-items" class="list-group">
-                        <!-- Cart items will appear here -->
-                    </ul>
+                        </ul>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" onclick="window.location.href='checkout.html'">Go to Checkout</button>
-                    <button type="button" class="btn btn-success">Checkout</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container text-center mt-5">
-        <h1>Welcome to Food Delivery!</h1>
-        <p>Delicious food delivered to your door in no time.</p>
-        <a href="#" class="btn btn-primary">Order Now</a>
-    </div>
-
-     <!-- Hero Section -->
-    <div class="hero text-center text-white d-flex align-items-center justify-content-center" style="background: url('images/hero-banner.jpg') no-repeat center/cover; height: 60vh;">
+    <header class="hero text-center text-white d-flex align-items-center justify-content-center" style="background: url('images/hero-banner.jpg') no-repeat center/cover; height: 60vh;">
         <div>
             <h1>Delicious Food, Delivered Fast</h1>
             <p>Order your favorite dishes at the best prices!</p>
-            <a href="#menu" class="btn btn-lg btn-primary">Explore Menu</a>
+            <a href="#menu" class="btn btn-lg btn-primary scroll-to-menu">Explore Menu</a>
+        </div>
+    </header>
+
+    <div class="container mt-4">
+        <div class="input-group mb-3">
+            <input type="text" class="form-control" id="search-input" placeholder="Search for food items...">
         </div>
     </div>
 
+    <section id="menu" class="container mt-5">
+        <h2 class="text-center mb-4">Our Menu</h2>
+        <div class="row g-4" id="menu-items-container">
+            </div>
+    </section>
 
-    <!-- Menu Section -->
-    <div class="container mt-5">
-        <h2>Our Menu</h2>
-        <div class="row mt-4">
-            <div class="col-md-4">
-                <div class="card">
-                    <img src="pizza.jpg" class="card-img-top" alt="pizza">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="pizza">
-                    <div class="card-body">
-                        <h5 class="card-title">pizza</h5>
-                        <p class="card-text">Cheesy and delicious.</p>
-                        <button class="btn btn-primary add-to-cart" data-item="pizza">Add to Cart</button>
+    <section id="testimonials" class="bg-light py-5 mt-5">
+        <div class="container">
+            <h2 class="text-center mb-4">What Our Customers Say</h2>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card p-4 text-center">
+                        <p>"Best food delivery service I've ever used. Fast and delicious!"</p>
+                        <footer class="blockquote-footer mt-2">Priya S.</footer>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <img src="burger.jpg" class="card-img-top" alt="Burger">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="Burger">
-                    <div class="card-body">
-                        <h5 class="card-title">Burger</h5>
-                        <p class="card-text">Juicy and flavorful.</p>
-                        <button class="btn btn-primary add-to-cart" data-item="Burger">Add to Cart</button>
+                <div class="col-md-4">
+                    <div class="card p-4 text-center">
+                        <p>"The pasta was amazing! The website is so easy to use."</p>
+                        <footer class="blockquote-footer mt-2">Rahul K.</footer>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card">
-                    <img src=pasta.jpg" class="card-img-top" alt="Pasta">
-                    <img src="https://via.placeholder.com/150" class="card-img-top" alt="Pasta">
-                    <div class="card-body">
-                        <h5 class="card-title">Pasta</h5>
-                        <p class="card-text">Creamy and tasty.</p>
-                        <button class="btn btn-primary add-to-cart" data-item="Pasta">Add to Cart</button>
+                <div class="col-md-4">
+                    <div class="card p-4 text-center">
+                        <p>"Love the variety of food and quick delivery. Highly recommended!"</p>
+                        <footer class="blockquote-footer mt-2">Anjali M.</footer>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Footer -->
-    <footer class="bg-light text-center py-3">
-        <p>&copy; 2025 Food Delivery. All Rights Reserved.</p>
+    <footer class="text-center py-3 mt-5">
+        <p>&copy; 2025 Hunger. All Rights Reserved.</p>
     </footer>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
     <script src="scripts.js"></script>
 </body>
 </html>
