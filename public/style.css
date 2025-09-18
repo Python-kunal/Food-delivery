@@ -1,26 +1,74 @@
 body {
-    background-color: #99058d;
-    font-family: Arial, sans-serif;
+    background-color: #f0f2f5; /* Light grey background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+    color: #333; /* Dark text for readability */
 }
-h1 {
-    color: #007bff;
+
+h1, h2, h3 {
+    color: #e74c3c; /* A vibrant red for headings */
+    font-weight: bold;
 }
-footer {
-    background-color: #067bf0;
-    color: rgba(175, 18, 236, 0.753);
+
+.navbar {
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow for depth */
 }
+
+.navbar-brand {
+    font-weight: bold;
+    color: #e74c3c !important;
+}
+
+.nav-link {
+    font-weight: 500;
+}
+
 .hero {
     position: relative;
-    color: rgb(10, 92, 243);
+    color: #fff;
     text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    padding: 8rem 0; /* More padding for better spacing */
 }
 
 .hero h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: 3.5rem;
+    color: #fff;
 }
 
 .hero p {
     font-size: 1.5rem;
-    margin-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+.btn-primary, .btn-success {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+    transition: background-color 0.3s ease; /* Smooth transition on hover */
+}
+
+.btn-primary:hover, .btn-success:hover {
+    background-color: #c0392b;
+    border-color: #c0392b;
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Professional shadow effect */
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px); /* Lift card on hover */
+}
+
+.card-img-top {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+footer {
+    background-color: #34495e; /* Darker, more professional footer color */
+    color: #ecf0f1;
+    padding: 2rem 0;
 }
