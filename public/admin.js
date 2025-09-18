@@ -2,6 +2,9 @@
 async function fetchOrders() {
     try {
         const response = await fetch('/api/orders');
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
         const orders = await response.json();
         const ordersTable = document.getElementById('orders-table');
         ordersTable.innerHTML = ''; // Clear previous data
