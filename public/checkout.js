@@ -1,6 +1,7 @@
 // Mock Cart Data
 const cart = JSON.parse(localStorage.getItem('cart')) || [];
 const prices = { Pizza: 200, Burger: 150, Pasta: 180 };
+const userId = localStorage.getItem('userId');
 
 // Populate Order Summary Table
 const orderSummary = document.getElementById('order-summary');
@@ -26,11 +27,17 @@ document.getElementById('confirm-order').addEventListener('click', async () => {
         return;
     }
 
+    if (!userId) {
+        alert("Please log in to confirm your order.");
+        window.location.href = '/login.html';
+        return;
+    }
+
     try {
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: cart, total, name, address, phone }),
+            body: JSON.stringify({ items: cart, total, name, address, phone, userId }),
         });
 
         if (response.ok) {
