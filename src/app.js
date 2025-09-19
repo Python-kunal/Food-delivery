@@ -12,14 +12,20 @@ app.use(bodyParser.json());
 
 // Initialize database and create table with new columns
 db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        items TEXT NOT NULL,
-        total INTEGER NOT NULL,
-        name TEXT,
-        address TEXT,
-        phone TEXT
-    )`);
+    // Drop the table if it exists to ensure new columns are added
+    db.run(`DROP TABLE IF EXISTS orders`, (err) => {
+        if (err) {
+            console.error('Error dropping table:', err.message);
+        }
+        db.run(`CREATE TABLE orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            items TEXT NOT NULL,
+            total INTEGER NOT NULL,
+            name TEXT,
+            address TEXT,
+            phone TEXT
+        )`);
+    });
 });
 
 // API to save order to database
