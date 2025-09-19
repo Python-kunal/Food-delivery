@@ -13,6 +13,9 @@ async function fetchOrders() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${order.id}</td>
+                <td>${order.name}</td>
+                <td>${order.address}</td>
+                <td>${order.phone}</td>
                 <td>${order.items.join(', ')}</td>
                 <td>₹${order.total}</td>
             `;
