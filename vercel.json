@@ -1,5 +1,10 @@
 {
   "version": 2,
+  "functions": {
+    "src/app.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "builds": [
     {
       "src": "src/app.js",

@@ -1,29 +1,95 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const bcrypt = require('bcrypt');
-const saltRounds = 10;
+const crypto = require('crypto');
+
+let bcrypt;
+try {
+    bcrypt = require('bcrypt');
+} catch (error) {
+    console.warn('bcrypt not available, falling back to scrypt hashing:', error.message);
+}
+
+let sqlite3;
+try {
+    sqlite3 = require('sqlite3').verbose();
+} catch (error) {
+    console.warn('sqlite3 not available, using in-memory storage fallback:', error.message);
+}
 
 const app = express();
 const isVercel = Boolean(process.env.VERCEL);
 const databasePath = isVercel
     ? path.join('/tmp', 'orders.db')
     : path.join(__dirname, '..', 'orders.db');
-const db = new sqlite3.Database(databasePath);
 
-// Middleware
 app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(express.json());
 
-// Initialize database and create tables
-db.serialize(() => {
-    db.run(`CREATE TABLE IF NOT EXISTS users (
+const memoryStore = {
+    users: [],
+    orders: [],
+    userId: 1,
+    orderId: 1,
+};
+
+let db = null;
+if (sqlite3) {
+    try {
+        db = new sqlite3.Database(databasePath);
+    } catch (error) {
+        console.error('Failed to initialize sqlite database, using memory store fallback:', error);
+        db = null;
+    }
+}
+
+function runQuery(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.run(sql, params, function handleRun(err) {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve({ lastID: this.lastID, changes: this.changes });
+        });
+    });
+}
+
+function getQuery(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(row || null);
+        });
+    });
+}
+
+function allQuery(sql, params = []) {
+    return new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(rows || []);
+        });
+    });
+}
+
+async function initSqlite() {
+    if (!db) {
+        return;
+    }
+
+    await runQuery(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS orders (
+    await runQuery(`CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         items TEXT NOT NULL,
         total INTEGER NOT NULL,
@@ -32,140 +98,229 @@ db.serialize(() => {
         phone TEXT
     )`);
 
-    // Add user_id only if it doesn't already exist.
-    db.all(`PRAGMA table_info(orders)`, (err, columns) => {
-        if (err) {
-            console.error('Failed to read orders schema:', err);
-            return;
-        }
+    const columns = await allQuery(`PRAGMA table_info(orders)`);
+    const hasUserId = columns.some((column) => column.name === 'user_id');
+    if (!hasUserId) {
+        await runQuery(`ALTER TABLE orders ADD COLUMN user_id INTEGER`);
+    }
+}
 
-        const hasUserId = columns.some((column) => column.name === 'user_id');
-        if (!hasUserId) {
-            db.run(`ALTER TABLE orders ADD COLUMN user_id INTEGER`, (alterErr) => {
-                if (alterErr) {
-                    console.error('Failed to add user_id to orders table:', alterErr);
-                }
-            });
+const initPromise = initSqlite().catch((error) => {
+    console.error('Sqlite initialization failed, switching to in-memory storage:', error);
+    db = null;
+});
+
+async function hashPassword(password) {
+    if (bcrypt) {
+        return bcrypt.hash(password, 10);
+    }
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+    return `scrypt$${salt}$${derived}`;
+}
+
+async function verifyPassword(password, storedHash) {
+    if (!storedHash) {
+        return false;
+    }
+
+    if (storedHash.startsWith('scrypt$')) {
+        const parts = storedHash.split('$');
+        if (parts.length !== 3) {
+            return false;
         }
+        const [, salt, hash] = parts;
+        const derived = crypto.scryptSync(password, salt, 64).toString('hex');
+        return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(derived, 'hex'));
+    }
+
+    if (!bcrypt) {
+        return false;
+    }
+
+    return bcrypt.compare(password, storedHash);
+}
+
+async function createUser(username, passwordHash) {
+    if (db) {
+        const result = await runQuery(
+            `INSERT INTO users (username, password) VALUES (?, ?)`,
+            [username, passwordHash]
+        );
+        return { id: result.lastID, username, password: passwordHash };
+    }
+
+    const exists = memoryStore.users.some((user) => user.username === username);
+    if (exists) {
+        const duplicateError = new Error('UNIQUE constraint failed: users.username');
+        duplicateError.code = 'SQLITE_CONSTRAINT';
+        throw duplicateError;
+    }
+
+    const user = { id: memoryStore.userId++, username, password: passwordHash };
+    memoryStore.users.push(user);
+    return user;
+}
+
+async function findUserByUsername(username) {
+    if (db) {
+        return getQuery(`SELECT * FROM users WHERE username = ?`, [username]);
+    }
+    return memoryStore.users.find((user) => user.username === username) || null;
+}
+
+async function createOrder(items, total, name, address, phone, userId) {
+    if (db) {
+        const result = await runQuery(
+            `INSERT INTO orders (items, total, name, address, phone, user_id) VALUES (?, ?, ?, ?, ?, ?)`,
+            [JSON.stringify(items), total, name, address, phone, userId]
+        );
+        return result.lastID;
+    }
+
+    const orderId = memoryStore.orderId++;
+    memoryStore.orders.push({
+        id: orderId,
+        items,
+        total,
+        name,
+        address,
+        phone,
+        user_id: Number(userId),
+    });
+    return orderId;
+}
+
+async function getAllOrders() {
+    if (db) {
+        const rows = await allQuery(`SELECT id, items, total, name, address, phone, user_id FROM orders`);
+        return rows.map((row) => ({
+            ...row,
+            items: JSON.parse(row.items || '[]'),
+        }));
+    }
+
+    return memoryStore.orders;
+}
+
+async function getOrdersByUserId(userId) {
+    if (db) {
+        const rows = await allQuery(`SELECT * FROM orders WHERE user_id = ?`, [userId]);
+        return rows.map((row) => ({
+            ...row,
+            items: JSON.parse(row.items || '[]'),
+        }));
+    }
+
+    return memoryStore.orders.filter((order) => Number(order.user_id) === Number(userId));
+}
+
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        storage: db ? 'sqlite' : 'memory',
+        hashing: bcrypt ? 'bcrypt' : 'scrypt',
     });
 });
 
-// API to save order to database
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
+    await initPromise;
+
     const { items, total, name, address, phone, userId } = req.body;
     if (!items || !total || !name || !address || !phone || !userId) {
         return res.status(400).json({ error: 'Invalid order data' });
     }
-    const itemsString = JSON.stringify(items);
-    db.run(
-        `INSERT INTO orders (items, total, name, address, phone, user_id) VALUES (?, ?, ?, ?, ?, ?)`,
-        [itemsString, total, name, address, phone, userId],
-        function (err) {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ error: 'Failed to save order' });
-            }
-            res.status(201).json({ message: 'Order received!', orderId: this.lastID });
-        }
-    );
+
+    try {
+        const orderId = await createOrder(items, total, name, address, phone, userId);
+        return res.status(201).json({ message: 'Order received!', orderId });
+    } catch (error) {
+        console.error('Create order failed:', error);
+        return res.status(500).json({ error: 'Failed to save order' });
+    }
 });
 
-// Corrected GET API to fetch all orders from database for admin
-app.get('/api/orders', (req, res) => {
-    db.all(`SELECT id, items, total, name, address, phone, user_id FROM orders`, (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Failed to fetch orders' });
-        }
-        // Parse items from JSON string to an array
-        const orders = rows.map(row => ({
-            ...row,
-            items: JSON.parse(row.items || '[]')
-        }));
-        res.json(orders);
-    });
+app.get('/api/orders', async (req, res) => {
+    await initPromise;
+
+    try {
+        const orders = await getAllOrders();
+        return res.json(orders);
+    } catch (error) {
+        console.error('Fetch orders failed:', error);
+        return res.status(500).json({ error: 'Failed to fetch orders' });
+    }
 });
 
-// New API to fetch orders for a specific user
-app.get('/api/my-orders', (req, res) => {
+app.get('/api/my-orders', async (req, res) => {
+    await initPromise;
+
     const { userId } = req.query;
     if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
     }
-    db.all(`SELECT * FROM orders WHERE user_id = ?`, [userId], (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ error: 'Failed to fetch user orders' });
-        }
-        const orders = rows.map(row => ({
-            ...row,
-            items: JSON.parse(row.items || '[]')
-        }));
-        res.json(orders);
-    });
+
+    try {
+        const orders = await getOrdersByUserId(userId);
+        return res.json(orders);
+    } catch (error) {
+        console.error('Fetch user orders failed:', error);
+        return res.status(500).json({ error: 'Failed to fetch user orders' });
+    }
 });
 
-// New API for user signup
-app.post('/signup', (req, res) => {
+app.post('/signup', async (req, res) => {
+    await initPromise;
+
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    bcrypt.hash(password, saltRounds, (err, hash) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Failed to create user' });
+    try {
+        const passwordHash = await hashPassword(password);
+        const user = await createUser(username, passwordHash);
+        return res.status(201).json({ message: 'User created successfully!', userId: user.id });
+    } catch (error) {
+        if (String(error.message).includes('UNIQUE constraint failed')) {
+            return res.status(409).json({ message: 'Username already exists' });
         }
-
-        db.run(
-            `INSERT INTO users (username, password) VALUES (?, ?)`,
-            [username, hash],
-            function (err) {
-                if (err) {
-                    if (err.message.includes('UNIQUE constraint failed')) {
-                        return res.status(409).json({ message: 'Username already exists' });
-                    }
-                    console.error(err);
-                    return res.status(500).json({ message: 'Failed to create user' });
-                }
-                res.status(201).json({ message: 'User created successfully!', userId: this.lastID });
-            }
-        );
-    });
+        console.error('Signup failed:', error);
+        return res.status(500).json({ message: 'Failed to create user' });
+    }
 });
 
-// New API for user login
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
+    await initPromise;
+
     const { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ message: 'Username and password are required' });
     }
 
-    db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, user) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Login failed' });
-        }
+    try {
+        const user = await findUserByUsername(username);
         if (!user) {
             return res.status(400).json({ message: 'Invalid username or password' });
         }
 
-        const match = await bcrypt.compare(password, user.password);
-        if (match) {
-            res.status(200).json({ message: 'Login successful!', username: user.username, userId: user.id });
-        } else {
-            res.status(400).json({ message: 'Invalid username or password' });
+        const isValid = await verifyPassword(password, user.password);
+        if (!isValid) {
+            return res.status(400).json({ message: 'Invalid username or password' });
         }
-    });
+
+        return res.status(200).json({ message: 'Login successful!', username: user.username, userId: user.id });
+    } catch (error) {
+        console.error('Login failed:', error);
+        return res.status(500).json({ message: 'Login failed' });
+    }
 });
 
-// Serve the index.html file for the root URL
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public', 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
 });
 
-// Start server
 const PORT = 3000;
 if (!isVercel) {
     app.listen(PORT, () => {
