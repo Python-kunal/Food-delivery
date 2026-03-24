@@ -7,11 +7,11 @@ const menuItems = [
     { name: 'Pizza', price: 1200, description: 'Cheesy and delicious.', image: 'images/pizza.jpg' },
     { name: 'Burger', price: 1590, description: 'Juicy and flavorful.', image: 'images/burger.jpg' },
     { name: 'Pasta', price: 1899, description: 'Creamy and tasty.', image: 'images/pasta.jpg' },
-    { name: 'Noodles', price: 1270, description: 'Spicy and flavorful.', image: 'images/noodles.jpg' },
-    { name: 'Tacos', price: 1600, description: 'Crispy and delicious.', image: 'images/tacos.jpg' },
-    { name: 'Biryani', price: 2250, description: 'Aromatic and flavorful rice dish.', image: 'images/biryani.jpg' },
-    { name: 'Samosa', price: 920, description: 'Crispy fried pastry with savory filling.', image: 'images/samosa.jpg' },
-    { name: 'Dosa', price: 9880, description: 'Thin, crispy crepe made from fermented batter.', image: 'images/dosa.jpg' },
+    { name: 'Noodles', price: 1270, description: 'Spicy and flavorful.', image: 'images/Noodles.jpg' },
+    { name: 'Tacos', price: 1600, description: 'Crispy and delicious.', image: 'images/Tacos.jpg' },
+    { name: 'Biryani', price: 2250, description: 'Aromatic and flavorful rice dish.', image: 'images/Biryani.jpg' },
+    { name: 'Samosa', price: 920, description: 'Crispy fried pastry with savory filling.', image: 'images/Samosa.jpg' },
+    { name: 'Dosa', price: 9880, description: 'Thin, crispy crepe made from fermented batter.', image: 'images/Dosa.jpg' },
     { name: 'ChickenTikka', price: 2220, description: 'Marinated chicken pieces, grilled to perfection.', image: 'images/chickentikka.jpg' },
     { name: 'CholeBhature', price: 9100, description: 'Spicy chickpeas with fluffy fried bread.', image: 'images/cholebhature.jpg' }
 ];
