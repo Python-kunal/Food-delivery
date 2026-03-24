@@ -5,33 +5,49 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
 const app = express();
-const db = new sqlite3.Database('./orders.db');
+const isVercel = Boolean(process.env.VERCEL);
+const databasePath = isVercel
+    ? path.join('/tmp', 'orders.db')
+    : path.join(__dirname, '..', 'orders.db');
+const db = new sqlite3.Database(databasePath);
 
 // Middleware
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use(express.json());
 
 // Initialize database and create tables
 db.serialize(() => {
-    // Drop the orders table to add the new user_id column
-    db.run(`DROP TABLE IF EXISTS orders`);
-    db.run(`CREATE TABLE orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        items TEXT NOT NULL,
-        total INTEGER NOT NULL,
-        name TEXT,
-        address TEXT,
-        phone TEXT,
-        user_id INTEGER,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-    )`);
-
-    // Create a new table for users
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL
     )`);
+
+    db.run(`CREATE TABLE IF NOT EXISTS orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        items TEXT NOT NULL,
+        total INTEGER NOT NULL,
+        name TEXT,
+        address TEXT,
+        phone TEXT
+    )`);
+
+    // Add user_id only if it doesn't already exist.
+    db.all(`PRAGMA table_info(orders)`, (err, columns) => {
+        if (err) {
+            console.error('Failed to read orders schema:', err);
+            return;
+        }
+
+        const hasUserId = columns.some((column) => column.name === 'user_id');
+        if (!hasUserId) {
+            db.run(`ALTER TABLE orders ADD COLUMN user_id INTEGER`, (alterErr) => {
+                if (alterErr) {
+                    console.error('Failed to add user_id to orders table:', alterErr);
+                }
+            });
+        }
+    });
 });
 
 // API to save order to database
@@ -64,7 +80,7 @@ app.get('/api/orders', (req, res) => {
         // Parse items from JSON string to an array
         const orders = rows.map(row => ({
             ...row,
-            items: JSON.parse(row.items)
+            items: JSON.parse(row.items || '[]')
         }));
         res.json(orders);
     });
@@ -83,7 +99,7 @@ app.get('/api/my-orders', (req, res) => {
         }
         const orders = rows.map(row => ({
             ...row,
-            items: JSON.parse(row.items)
+            items: JSON.parse(row.items || '[]')
         }));
         res.json(orders);
     });
@@ -151,6 +167,10 @@ app.get('/', (req, res) => {
 
 // Start server
 const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-});
+if (!isVercel) {
+    app.listen(PORT, () => {
+        console.log(`Server running at http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
